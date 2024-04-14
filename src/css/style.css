@@ -8,16 +8,20 @@ body {
 .content {
   margin: 30px auto;
   width: 90vw;
-  min-height: 90vh;
+  height: 70vh;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+}
+
+.content-field {
+  overflow: auto;
+  flex-grow: 1;
 }
 
 .content-field-posts {
   margin-left: 20px;
   position: relative;
-  height: 400px;
-  background-color: greenyellow;
 }
 
 .content-field-posts::before {
@@ -26,14 +30,14 @@ body {
   width: 15px;
   left: 0;
   top: 15px;
-  bottom: 0;
+  bottom: -12px;
   border: solid black;
   border-width: 0px 1px 0px;
   background-color: cornsilk;
 }
 
 .content-field-input {
-  height: 60px;
+  min-height: 60px;
   border: 1px solid black;
   display: flex;
   align-items: stretch;
@@ -158,6 +162,16 @@ button:active {
   margin-right: 10px;
   width: 75%;
   word-wrap: break-word;
+}
+
+.post-video {
+  margin-right: 10px;
+  width: 75%;
+}
+
+.post-audio {
+  margin-right: 10px;
+  width: 75%;
 }
 
 .post-date {

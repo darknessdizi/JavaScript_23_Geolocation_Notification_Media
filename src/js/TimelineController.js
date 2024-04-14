@@ -116,6 +116,8 @@ export default class TimelineController {
   onPressMicro(event) {
     // Callback - нажатие кнопки микрофон
     console.log('нажали микрофон');
+    const date = this.getStringCords(5);
+    this.edit.drawAudio(date);
     const audio = navigator.mediaDevices.getUserMedia({
       audio: true, // получение разрешения на пользование микрофоном
     });

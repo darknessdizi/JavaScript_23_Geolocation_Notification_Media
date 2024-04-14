@@ -30,7 +30,8 @@ export default class TimelineEdit {
     // Создает элемент main содержащий весь контент
     const body = document.querySelector('body');
     this.main = TimelineEdit.addTagHTML(body, 'content', 'main');
-    this.fieldPosts = TimelineEdit.addTagHTML(this.main, 'content-field-posts');
+    const field = TimelineEdit.addTagHTML(this.main, 'content-field');
+    this.fieldPosts = TimelineEdit.addTagHTML(field, 'content-field-posts');
     const fieldInput = TimelineEdit.addTagHTML(this.main, 'content-field-input');
 
     this.input = TimelineEdit.addTagHTML(fieldInput, 'field-input', 'input');
@@ -101,8 +102,21 @@ export default class TimelineEdit {
     cords.textContent = `[${stringDate}]`;
   }
 
-  drawAudio() {
+  drawAudio(stringDate) {
+    const conteiner = document.createElement('div');
+    conteiner.classList.add('content-post');
+    this.fieldPosts.prepend(conteiner);
 
+    const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
+    const audio = TimelineEdit.addTagHTML(row, 'post-audio', 'audio');
+    audio.setAttribute('controls', '');
+    // message.textContent = this.input.value;
+    // this.input.value = '';
+    const date = TimelineEdit.addTagHTML(row, 'post-date');
+    const time = Date.now();
+    date.textContent = TimelineEdit.getNewFormatDate(time);
+    const cords = TimelineEdit.addTagHTML(conteiner, 'post-cords');
+    cords.textContent = `[${stringDate}]`;
   }
 
   drawVideo(stringDate) {
