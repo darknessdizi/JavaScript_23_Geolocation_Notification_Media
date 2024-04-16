@@ -1,6 +1,13 @@
 export default class TimelineController {
   constructor(editor) {
     this.edit = editor;
+    this.time = {
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    }
+    this.stream = null;
+    this.timerId = null;
   }
 
   init() {
@@ -10,6 +17,8 @@ export default class TimelineController {
     this.edit.addMicroListeners(this.onPressMicro.bind(this));
     this.edit.addVideoListeners(this.onPressVideo.bind(this));
     this.edit.addPopupListeners(this.onPopupClick.bind(this));
+    this.edit.addCrossListeners(this.onPressCross.bind(this));
+    this.edit.addAcceptListeners(this.onPressAccept.bind(this));
   }
 
   getStringCords(number) {
@@ -70,7 +79,7 @@ export default class TimelineController {
     return false;
   }
 
-  onPopupClick(event) {
+  onPopupClick(event, type) {
     // Callback - нажатие кнопки ОК в поле popup
     const parent = event.target.closest('.popup');
     const input = parent.querySelector('.popup-input');
@@ -89,7 +98,15 @@ export default class TimelineController {
     }
     this.edit.popup.remove();
     const date = this.getStringCords(5);
-    this.edit.drawMessage(date);
+    if (type === 'message') {
+      this.edit.drawMessage(date);
+    }
+    if (type === 'micro') {
+      this.edit.drawAudio(date);
+    }
+    if (type === 'video') {
+      this.edit.drawVideo(date);
+    }
   }
 
   onPressInput(event) {
@@ -116,6 +133,10 @@ export default class TimelineController {
   onPressMicro(event) {
     // Callback - нажатие кнопки микрофон
     console.log('нажали микрофон');
+    if (!this.edit.cords) {
+      this.edit.drawPopup('micro');
+      return;
+    }
     const date = this.getStringCords(5);
     this.edit.drawAudio(date);
     const audio = navigator.mediaDevices.getUserMedia({
@@ -123,13 +144,94 @@ export default class TimelineController {
     });
   }
 
-  onPressVideo(event) {
+  async onPressVideo(event) {
     // Callback - нажатие кнопки видео
-    console.log('нажали видео');
-    const date = this.getStringCords(5);
-    this.edit.drawVideo(date);
-    const video = navigator.mediaDevices.getUserMedia({
+    console.log('нажали видео', event.target);
+    if (!this.edit.cords) { // проверяем наличие координат
+      this.edit.drawPopup('video');
+      return;
+    } 
+
+    // const date = this.getStringCords(5); // получение координат
+    // this.edit.drawVideo(date);
+    this.stream = await navigator.mediaDevices.getUserMedia({ // получаем видеопоток
       video: true, // получение разрешения на пользование видеокамерой
     });
+
+    const { target } = event;
+    const parent = target.closest('.content-field-input');
+    this.edit.drawFieldVideo(parent);
+    this.edit.fieldVideo.srcObject = this.stream;
+    this.edit.btnVideo.classList.toggle('hidden');
+    this.edit.btnMicro.classList.toggle('hidden');
+    this.edit.btnAccept.classList.toggle('hidden');
+    this.edit.btnCancel.classList.toggle('hidden');
+    this.edit.time.classList.toggle('hidden');
+
+    this.edit.fieldVideo.addEventListener('canplay', () => {
+      console.log('Нашлось видео');
+      this.edit.fieldVideo.play();
+      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+    });
+  }
+
+  secundomer() {
+    // метод вызываемый таймером
+      this.time.seconds += 1;
+      if (this.time.seconds === 60) {
+        this.time.minutes += 1;
+        this.time.seconds = 0;
+        if (this.time.minutes === 60) {
+          this.time.hours += 1;
+          this.time.minutes = 0;
+        }
+      }
+
+      const seconds = this.getStringTime(this.time.seconds);
+      const minutes = this.getStringTime(this.time.minutes);
+      const hours = this.getStringTime(this.time.hours);
+
+      if (this.time.hours === 0) {
+        this.edit.time.children[0].textContent = `${minutes}.${seconds}`;
+      } else {
+        this.edit.time.children[0].textContent = `${hours}.${minutes}.${seconds}`;
+      }
+
+      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+  }
+
+  getStringTime(number) {
+    // Делает число двухзначным и преобразует в строку
+    let seconds = String(number);
+      if (seconds.length < 2) {
+        seconds = `0${number}`;
+    }
+    return seconds;
+  }
+
+  onPressCross() {
+    // Callback - нажатие кнопки крестик (отмена записи)
+    this.stream.getTracks().forEach(function(track) {
+      track.stop(); // отключаем все дорожки видео потока
+    });
+    this.edit.fieldVideo.remove();
+    clearTimeout(this.timerId);
+    this.edit.btnVideo.classList.toggle('hidden');
+    this.edit.btnMicro.classList.toggle('hidden');
+    this.edit.btnAccept.classList.toggle('hidden');
+    this.edit.btnCancel.classList.toggle('hidden');
+    this.edit.time.classList.toggle('hidden');
+    this.edit.time.children[0].textContent = '00.00';
+    this.edit.input.value = '';
+    this.time = {
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    }
+  }
+
+  onPressAccept() {
+    // Callback - нажатие кнопки принять (сохранение аудио/видео записи)
+    console.log('сохранение аудио/видео записи');
   }
 }

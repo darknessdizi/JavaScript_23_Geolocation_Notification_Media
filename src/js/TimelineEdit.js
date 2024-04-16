@@ -4,11 +4,19 @@ export default class TimelineEdit {
     this.fieldPosts = null;
     this.input = null;
     this.popup = null;
+    this.btnVideo = null;
+    this.btnMicro = null;
+    this.btnAccept = null;
+    this.btnCancel = null;
+    this.time = null;
     this.videoListeners = [];
     this.microListeners = [];
     this.inputListeners = [];
     this.popupListeners = [];
+    this.crossListeners = [];
+    this.acceptListeners = [];
     this.cords = null;
+    this.fieldVideo = null;
   }
 
   bindToDOM() {
@@ -32,22 +40,45 @@ export default class TimelineEdit {
     this.main = TimelineEdit.addTagHTML(body, 'content', 'main');
     const field = TimelineEdit.addTagHTML(this.main, 'content-field');
     this.fieldPosts = TimelineEdit.addTagHTML(field, 'content-field-posts');
-    const fieldInput = TimelineEdit.addTagHTML(this.main, 'content-field-input');
+    const fieldInput = TimelineEdit.addTagHTML(this.main, 'content-field-input', 'form');
 
     this.input = TimelineEdit.addTagHTML(fieldInput, 'field-input', 'input');
     this.input.setAttribute('placeholder', 'Введите текстовое сообщение');
     this.input.focus();
-    const micro = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
-    micro.classList.add('action-micro');
-    const video = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
-    video.classList.add('action-video');
 
-    this.input.addEventListener('change', (o) => this.onPressInput(o));
-    micro.addEventListener('click', (o) => this.onPressMicro(o));
-    video.addEventListener('click', (o) => this.onPressVideo(o));
+    this.btnMicro = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
+    this.btnMicro.classList.add('action-micro');
+
+    this.btnAccept = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
+    this.btnAccept.classList.add('action-accept');
+    this.btnAccept.classList.add('hidden');
+
+    this.time = TimelineEdit.addTagHTML(fieldInput, 'actions-text');
+    const span = TimelineEdit.addTagHTML(this.time, 'text-time', 'span');
+    span.textContent = '00.00';
+    this.time.classList.add('hidden');
+
+    this.btnCancel = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
+    this.btnCancel.classList.add('action-cancel');
+    this.btnCancel.classList.add('hidden');
+
+    this.btnVideo = TimelineEdit.addTagHTML(fieldInput, 'input-actions');
+    this.btnVideo.classList.add('action-video');
+
+    fieldInput.addEventListener('submit', (o) => this.onPressInput(o));
+    this.btnMicro.addEventListener('click', (o) => this.onPressMicro(o));
+    this.btnVideo.addEventListener('click', (o) => this.onPressVideo(o));
+    this.btnCancel.addEventListener('click', () => this.onPressCross());
+    this.btnAccept.addEventListener('click', (o) => this.onPressAccept(o));
   }
 
-  drawPopup() {
+  drawFieldVideo(parent) {
+    // Отрисовывает всплывающее окно для записи видеопотока
+    this.fieldVideo = TimelineEdit.addTagHTML(parent, 'field-video', 'video');
+    this.input.value = '';
+  }
+
+  drawPopup(type = 'message') {
     // Отрисовывает всплывающее окно
     this.popup = TimelineEdit.addTagHTML(this.main, 'background-popup');
     const conteiner = TimelineEdit.addTagHTML(this.popup, 'popup', 'form');
@@ -78,7 +109,7 @@ export default class TimelineEdit {
       this.popup.remove();
     });
 
-    btnOk.addEventListener('click', (o) => this.onPopupClick(o));
+    btnOk.addEventListener('click', (o) => this.onPopupClick(o, type));
 
     input.addEventListener('input', () => {
       input.setCustomValidity('');
@@ -86,7 +117,7 @@ export default class TimelineEdit {
   }
 
   drawMessage(stringDate) {
-    // Отрисовка нового текстового сообщения
+    // Добавляет новое сообщение в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
     this.fieldPosts.prepend(conteiner);
@@ -103,6 +134,7 @@ export default class TimelineEdit {
   }
 
   drawAudio(stringDate) {
+    // добавляет аудио в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
     this.fieldPosts.prepend(conteiner);
@@ -120,6 +152,7 @@ export default class TimelineEdit {
   }
 
   drawVideo(stringDate) {
+    // Добавляет видео в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
     this.fieldPosts.prepend(conteiner);
@@ -127,8 +160,7 @@ export default class TimelineEdit {
     const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
     const video = TimelineEdit.addTagHTML(row, 'post-video', 'video');
     video.setAttribute('controls', '');
-    // message.textContent = this.input.value;
-    // this.input.value = '';
+    this.input.value = '';
     const date = TimelineEdit.addTagHTML(row, 'post-date');
     const time = Date.now();
     date.textContent = TimelineEdit.getNewFormatDate(time);
@@ -165,10 +197,10 @@ export default class TimelineEdit {
     return div;
   }
 
-  onPopupClick(event) {
+  onPopupClick(event, type) {
     // Вызывает callback при нажатии ОК поля popup
     // event.preventDefault(); // необходимо отключить, чтобы использовать подсказки браузера
-    this.popupListeners.forEach((o) => o.call(null, event));
+    this.popupListeners.forEach((o) => o.call(null, event, type));
   }
 
   addPopupListeners(callback) {
@@ -177,6 +209,7 @@ export default class TimelineEdit {
 
   onPressInput(event) {
     // Вызывает callback при нажатии ввода поля input
+    event.preventDefault();
     this.inputListeners.forEach((o) => o.call(null, event));
   }
 
@@ -200,5 +233,23 @@ export default class TimelineEdit {
 
   addVideoListeners(callback) {
     this.videoListeners.push(callback);
+  }
+
+  onPressCross() {
+    // Вызывает callback при нажатии иконки крестик
+    this.crossListeners.forEach((o) => o.call(null));
+  }
+
+  addCrossListeners(callback) {
+    this.crossListeners.push(callback);
+  }
+
+  onPressAccept() {
+    // Вызывает callback при нажатии иконки принять запись
+    this.acceptListeners.forEach((o) => o.call(null));
+  }
+
+  addAcceptListeners(callback) {
+    this.acceptListeners.push(callback);
   }
 }
