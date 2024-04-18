@@ -20,24 +20,6 @@ export default class TimelineEdit {
   }
 
   bindToDOM() {
-    // Добавляет поле main к элементу body
-    // const nav = navigator.geolocation;
-    // console.log('получение nav', nav);
-    // if (nav) {
-    //   console.log('условие координат');
-    //   nav.getCurrentPosition((data) => {
-    //     console.log('получение координат', data);
-    //     this.cords = {
-    //       latitude: data.coords.latitude,
-    //       longitude: data.coords.longitude
-    //     }
-    //   });
-    // }
-
-    this.createMain();
-  }
-
-  createMain() {
     // Создает элемент main содержащий весь контент
     const body = document.querySelector('body');
     this.main = TimelineEdit.addTagHTML(body, 'content', 'main');
@@ -75,12 +57,19 @@ export default class TimelineEdit {
     this.btnAccept.addEventListener('click', (o) => this.onPressAccept(o));
   }
 
+  drawFieldAudio(parent) {
+    // Отрисовывает всплывающее окно для записи видеопотока
+    this.fieldAudio = TimelineEdit.addTagHTML(parent, 'field-audio', 'audio');
+    this.fieldAudio.setAttribute('autoplay', '');
+    this.fieldAudio.setAttribute('muted', '');
+    this.input.value = '';
+  }
+
   drawFieldVideo(parent) {
     // Отрисовывает всплывающее окно для записи видеопотока
     this.fieldVideo = TimelineEdit.addTagHTML(parent, 'field-video', 'video');
     this.fieldVideo.setAttribute('autoplay', '');
     this.fieldVideo.setAttribute('muted', '');
-    // this.fieldVideo.setAttribute('src', 'null');
     this.input.value = '';
   }
 
@@ -133,7 +122,7 @@ export default class TimelineEdit {
     cords.textContent = `[${stringDate}]`;
   }
 
-  drawAudio(stringDate) {
+  drawAudio(stringDate, url) {
     // добавляет аудио в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
@@ -142,8 +131,7 @@ export default class TimelineEdit {
     const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
     const audio = TimelineEdit.addTagHTML(row, 'post-audio', 'audio');
     audio.setAttribute('controls', '');
-    // message.textContent = this.input.value;
-    // this.input.value = '';
+    audio.src = url; // добавляем видеопоток
     const date = TimelineEdit.addTagHTML(row, 'post-date');
     const time = Date.now();
     date.textContent = TimelineEdit.getNewFormatDate(time);
@@ -211,7 +199,7 @@ export default class TimelineEdit {
   onPressInput(event) {
     // Вызывает callback при нажатии ввода поля input
     event.preventDefault();
-    this.inputListeners.forEach((o) => o.call(null, event));
+    this.inputListeners.forEach((o) => o.call(null));
   }
 
   addInputListeners(callback) {

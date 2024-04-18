@@ -10,7 +10,7 @@ export default class TimelineController {
     this.timerId = null;
     this.recorder = null;
     this.chunks = []; // для сохранения данных (чанков) по видео
-    this.blob = null;
+    this.url = null;
     this.save = false;
   }
 
@@ -48,7 +48,7 @@ export default class TimelineController {
     });
   }
 
-  getStringCords(cords, number) {
+  getStringCoords(cords, number) {
     // Получение строки с координатами
     const listLatitude = String(cords.latitude).split('.');
     let latitude = null;
@@ -76,7 +76,7 @@ export default class TimelineController {
     return `${latitude}, ${longitude}`;
   }
 
-  getCords(input) {
+  checkCoords(input) {
     // Проверка ввода данных координат пользователем
     const regexp2 = /^[-+]?\d{1,2}(?:\.\d+)?,\s*[-+]?\d{1,3}(?:\.\d+)?$/;
     const regexp = /^\[[-+]?\d{1,2}(?:\.\d+)?,\s*[-+]?\d{1,3}(?:\.\d+)?\]$/;
@@ -115,115 +115,140 @@ export default class TimelineController {
       input.setCustomValidity('Укажите широту и долготу согласно образца');
       return;
     }
-    const cords = this.getCords(input); // проверка шаблона ввода координат
+    const cords = this.checkCoords(input); // проверка шаблона ввода координат
     if (!cords) {
       return;
     }
     event.preventDefault();
     this.edit.popup.remove();
-    const data = this.getStringCords(cords, 5);
+    const data = this.getStringCoords(cords, 5);
     if (type === 'message') {
       this.edit.drawMessage(data);
     }
     if (type === 'micro') {
-      this.edit.drawAudio(data);
+      this.edit.drawAudio(data, this.url);
+      this.save = false;
     }
     if (type === 'video') {
-      this.edit.drawVideo(data);
+      this.edit.drawVideo(data, this.url);
+      this.save = false;
     }
   }
 
-  async onPressInput(event) {
+  async onPressInput() {
     // Callback - нажатие кнопки enter в поле ввода сообщения
     const cords = await this.getCoords(); // получение координат
     if (!cords) {
       this.edit.drawPopup(); // если координат нет, то отрисовать окно
       return;
     }
-    const data = this.getStringCords(cords, 5);
+    const data = this.getStringCoords(cords, 5);
     this.edit.drawMessage(data);
   }
 
-  onPressMicro(event) {
+  async onPressMicro(event) {
     // Callback - нажатие кнопки микрофон
     console.log('нажали микрофон');
-    if (!this.edit.cords) {
-      this.edit.drawPopup('micro');
-      return;
-    }
-    const date = this.getStringCords(5);
-    this.edit.drawAudio(date);
-    const audio = navigator.mediaDevices.getUserMedia({
-      audio: true, // получение разрешения на пользование микрофоном
+    const { target } = event;
+    const parent = target.closest('.content-field-input');
+
+    this.stream = await navigator.mediaDevices.getUserMedia({ // получаем аудио
+      audio: true // получение разрешения на пользование микрофоном
+    });
+
+    this.edit.drawFieldAudio(parent);
+    this.edit.fieldAudio.srcObject = this.stream; // Отображаем видеопоток в теге audio
+    this.edit.fieldAudio.play();
+
+    this.changingButtons(); // скрываем ненужные кнопки
+
+    this.recorder = new MediaRecorder(this.stream); // нужен для записи видеопотока
+    this.recorder.start();
+
+    this.recorder.addEventListener('start', () => { // начало записи
+      console.log('начало записи');
+      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+    });
+
+    this.recorder.addEventListener('dataavailable', (event) => { // получение данных
+      console.log('получение данных');
+      this.chunks.push(event.data); // для сохранения кусков данных по аудио в наш массив
+      console.log('this.chunks:', this.chunks);
+    });
+
+    this.recorder.addEventListener('stop', async () => { // конец записи
+      console.log('конец записи');
+      if (this.save) {
+        const blob = new Blob(this.chunks); // получение двоичных данных по аудио
+        this.url = URL.createObjectURL(blob);
+
+        const cords = await this.getCoords(); // получение координат
+        if (!cords) {
+          this.edit.drawPopup('micro'); // если координат нет, то отрисовать окно
+          return;
+        }
+        const data = this.getStringCoords(cords, 5);
+
+        this.edit.drawAudio(data, this.url); // отрисовка аудио в ленту
+        this.save = false;
+      }
     });
   }
 
   async onPressVideo(event) {
     // Callback - нажатие кнопки видео
-    // if (!this.edit.cords) { // проверяем наличие координат
-    //   this.edit.drawPopup('video');
-    //   return;
-    // } 
+    const { target } = event;
+    const parent = target.closest('.content-field-input');
 
-    // const date = this.getStringCords(5); // получение координат
-    // this.edit.drawVideo(date);
     this.stream = await navigator.mediaDevices.getUserMedia({ // получаем видеопоток
       video: true, // получение разрешения на пользование видеокамерой
       audio: true,
     });
 
-    const { target } = event;
-    const parent = target.closest('.content-field-input');
     this.edit.drawFieldVideo(parent);
-    this.edit.fieldVideo.srcObject = this.stream; // Отображаем видеопоток в теге video 
-                                                  // (blob объекты не подходят для этого)
+    this.edit.fieldVideo.srcObject = this.stream; // Отображаем видеопоток в теге video
     this.edit.fieldVideo.play();
-    this.edit.btnVideo.classList.toggle('hidden');
-    this.edit.btnMicro.classList.toggle('hidden');
-    this.edit.btnAccept.classList.toggle('hidden');
-    this.edit.btnCancel.classList.toggle('hidden');
-    this.edit.time.classList.toggle('hidden');
 
-    this.recorder = new MediaRecorder(this.stream); // для записи видеопотока
+    this.changingButtons(); // скрываем ненужные кнопки
 
-    this.recorder.addEventListener('start', () => {
+    this.recorder = new MediaRecorder(this.stream); // нужен для записи видеопотока
+    this.recorder.start();
+
+    this.recorder.addEventListener('start', () => { // начало записи
       console.log('начало записи');
-    }); // начало записи
+      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+    });
 
-    this.recorder.addEventListener('dataavailable', (event) => {
+    this.recorder.addEventListener('dataavailable', (event) => { // получение данных
       console.log('получение данных');
       this.chunks.push(event.data); // для сохранения кусков данных по видео в наш массив
       console.log('this.chunks:', this.chunks);
-    }); // получение данных
+    });
 
-    this.recorder.addEventListener('stop', () => {
+    this.recorder.addEventListener('stop', async () => { // конец записи
       console.log('конец записи');
       if (this.save) {
-        const nav = navigator.geolocation;
-        if (nav) {
-          console.log('Получаем коры');
-          nav.getCurrentPosition(async (data) => {
-            console.log('Получаем data', data);
-            this.edit.cords = {
-              latitude: data.coords.latitude,
-              longitude: data.coords.longitude
-            }
-          });
-        }
+        const blob = new Blob(this.chunks); // получение двоичных данных по видео
+        this.url = URL.createObjectURL(blob);
 
-        this.blob = new Blob(this.chunks); // получение двоичных данных по видео
-        const url = URL.createObjectURL(this.blob);
-        this.edit.drawVideo('12, 34', url); // отрисовка видео в ленту
+        const cords = await this.getCoords(); // получение координат
+        if (!cords) {
+          this.edit.drawPopup('video'); // если координат нет, то отрисовать окно
+          return;
+        }
+        const data = this.getStringCoords(cords, 5);
+
+        this.edit.drawVideo(data, this.url); // отрисовка видео в ленту
         this.save = false;
       }
-    }); // конец записи
-
-    this.edit.fieldVideo.addEventListener('canplay', () => {
-      console.log('Нашлось видео');
-      // this.edit.fieldVideo.play(); // запускаем воспроизведение видео в теге video
-      this.recorder.start(); // запуск записи видеопотока
-      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
     });
+
+    // this.edit.fieldVideo.addEventListener('canplay', () => { // Событие когда тег видео получил доступ к данным
+      // console.log('Нашлось видео');
+      // this.edit.fieldVideo.play(); // запускаем воспроизведение видео в теге video
+      // this.recorder.start(); // запуск записи видеопотока
+      // this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+    // });
   }
 
   secundomer() {
@@ -279,15 +304,16 @@ export default class TimelineController {
     this.stream.getTracks().forEach(function(track) {
       track.stop(); // отключаем все дорожки видео потока
     });
-    this.blob = null;
+    this.url = null;
     this.chunks = [];
-    this.edit.fieldVideo.remove(); // удаляем поле с видео
+    if (this.edit.fieldVideo) {
+      this.edit.fieldVideo.remove(); // удаляем поле с видео
+    }
+    if (this.edit.fieldAudio) {
+      this.edit.fieldAudio.remove();
+    }
     clearTimeout(this.timerId); // отключаем таймер
-    this.edit.btnVideo.classList.toggle('hidden');
-    this.edit.btnMicro.classList.toggle('hidden');
-    this.edit.btnAccept.classList.toggle('hidden');
-    this.edit.btnCancel.classList.toggle('hidden');
-    this.edit.time.classList.toggle('hidden');
+    this.changingButtons(); // замена кнопок
     this.edit.time.children[0].textContent = '00.00';
     this.edit.input.value = '';
     this.time = {
@@ -295,5 +321,14 @@ export default class TimelineController {
       minutes: 0,
       seconds: 0,
     }
+  }
+
+  changingButtons() {
+    // Смена состояния кнопок
+    this.edit.btnVideo.classList.toggle('hidden');
+    this.edit.btnMicro.classList.toggle('hidden');
+    this.edit.btnAccept.classList.toggle('hidden');
+    this.edit.btnCancel.classList.toggle('hidden');
+    this.edit.time.classList.toggle('hidden');
   }
 }
