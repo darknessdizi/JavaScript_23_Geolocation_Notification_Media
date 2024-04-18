@@ -126,11 +126,11 @@ export default class TimelineController {
       this.edit.drawMessage(data);
     }
     if (type === 'micro') {
-      this.edit.drawAudio(data, this.url);
+      this.edit.drawMedia(data, this.url , 'audio');
       this.save = false;
     }
     if (type === 'video') {
-      this.edit.drawVideo(data, this.url);
+      this.edit.drawMedia(data, this.url , 'video');
       this.save = false;
     }
   }
@@ -152,9 +152,13 @@ export default class TimelineController {
     const { target } = event;
     const parent = target.closest('.content-field-input');
 
-    this.stream = await navigator.mediaDevices.getUserMedia({ // получаем аудио
-      audio: true // получение разрешения на пользование микрофоном
-    });
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ // получаем аудио
+        audio: true // получение разрешения на пользование микрофоном
+      });
+    } catch(error) {
+      console.log('нажали микрофон2', error);
+    }
 
     this.edit.drawFieldAudio(parent);
     this.edit.fieldAudio.srcObject = this.stream; // Отображаем видеопоток в теге audio
@@ -173,7 +177,6 @@ export default class TimelineController {
     this.recorder.addEventListener('dataavailable', (event) => { // получение данных
       console.log('получение данных');
       this.chunks.push(event.data); // для сохранения кусков данных по аудио в наш массив
-      console.log('this.chunks:', this.chunks);
     });
 
     this.recorder.addEventListener('stop', async () => { // конец записи
@@ -189,7 +192,7 @@ export default class TimelineController {
         }
         const data = this.getStringCoords(cords, 5);
 
-        this.edit.drawAudio(data, this.url); // отрисовка аудио в ленту
+        this.edit.drawMedia(data, this.url , 'audio'); // отрисовка аудио в ленту
         this.save = false;
       }
     });
@@ -222,7 +225,6 @@ export default class TimelineController {
     this.recorder.addEventListener('dataavailable', (event) => { // получение данных
       console.log('получение данных');
       this.chunks.push(event.data); // для сохранения кусков данных по видео в наш массив
-      console.log('this.chunks:', this.chunks);
     });
 
     this.recorder.addEventListener('stop', async () => { // конец записи
@@ -238,7 +240,7 @@ export default class TimelineController {
         }
         const data = this.getStringCoords(cords, 5);
 
-        this.edit.drawVideo(data, this.url); // отрисовка видео в ленту
+        this.edit.drawMedia(data, this.url , 'video'); // отрисовка видео в ленту
         this.save = false;
       }
     });

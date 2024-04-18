@@ -9,14 +9,14 @@ export default class TimelineEdit {
     this.btnAccept = null;
     this.btnCancel = null;
     this.time = null;
+    this.fieldVideo = null;
+    this.fieldAudio = null;
     this.videoListeners = [];
     this.microListeners = [];
     this.inputListeners = [];
     this.popupListeners = [];
     this.crossListeners = [];
     this.acceptListeners = [];
-    this.cords = null;
-    this.fieldVideo = null;
   }
 
   bindToDOM() {
@@ -122,33 +122,16 @@ export default class TimelineEdit {
     cords.textContent = `[${stringDate}]`;
   }
 
-  drawAudio(stringDate, url) {
-    // добавляет аудио в ленту
+  drawMedia(stringDate, url, type) {
+    // Добавляет аудио или видео в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
     this.fieldPosts.prepend(conteiner);
 
     const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
-    const audio = TimelineEdit.addTagHTML(row, 'post-audio', 'audio');
-    audio.setAttribute('controls', '');
-    audio.src = url; // добавляем видеопоток
-    const date = TimelineEdit.addTagHTML(row, 'post-date');
-    const time = Date.now();
-    date.textContent = TimelineEdit.getNewFormatDate(time);
-    const cords = TimelineEdit.addTagHTML(conteiner, 'post-cords');
-    cords.textContent = `[${stringDate}]`;
-  }
-
-  drawVideo(stringDate, url) {
-    // Добавляет видео в ленту
-    const conteiner = document.createElement('div');
-    conteiner.classList.add('content-post');
-    this.fieldPosts.prepend(conteiner);
-
-    const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
-    const video = TimelineEdit.addTagHTML(row, 'post-video', 'video');
-    video.setAttribute('controls', '');
-    video.src = url; // добавляем видеопоток
+    const media = TimelineEdit.addTagHTML(row, `post-${type}`, type);
+    media.setAttribute('controls', '');
+    media.src = url; // добавляем медиапоток
     this.input.value = '';
     const date = TimelineEdit.addTagHTML(row, 'post-date');
     const time = Date.now();
