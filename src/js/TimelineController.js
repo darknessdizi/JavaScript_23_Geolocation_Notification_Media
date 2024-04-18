@@ -8,6 +8,10 @@ export default class TimelineController {
     }
     this.stream = null;
     this.timerId = null;
+    this.recorder = null;
+    this.chunks = []; // для сохранения данных (чанков) по видео
+    this.blob = null;
+    this.save = false;
   }
 
   init() {
@@ -21,30 +25,53 @@ export default class TimelineController {
     this.edit.addAcceptListeners(this.onPressAccept.bind(this));
   }
 
-  getStringCords(number) {
+  getCoords() {
+    // Запрос на получение координат
+    return new Promise((resolve) => {
+      if (navigator.geolocation) { // проверка на поддержку геолокации браузером
+        navigator.geolocation.getCurrentPosition(
+          (data) => { // callback - на успешное получение координат
+            console.log('data', data);
+            resolve({ // вернет объект с координатами
+              latitude: data.coords.latitude,
+              longitude: data.coords.longitude
+            });
+          },
+          (error) => { // callback - ошибка при получении координат
+            console.log('ошибка', error);
+            resolve(false);
+          }
+        )
+      } else {
+        resolve(false);
+      }
+    });
+  }
+
+  getStringCords(cords, number) {
     // Получение строки с координатами
-    const listLatitude = String(this.edit.cords.latitude).split('.');
+    const listLatitude = String(cords.latitude).split('.');
     let latitude = null;
     if (listLatitude.length > 1) {
       if (listLatitude[1].length < number) {
-        latitude = this.edit.cords.latitude.toFixed(listLatitude[1].length);
+        latitude = cords.latitude.toFixed(listLatitude[1].length);
       } else {
-        latitude = this.edit.cords.latitude.toFixed(number);
+        latitude = cords.latitude.toFixed(number);
       }
     } else {
-      latitude = this.edit.cords.latitude;
+      latitude = cords.latitude;
     }
 
-    const listLongitude = String(this.edit.cords.longitude).split('.');
+    const listLongitude = String(cords.longitude).split('.');
     let longitude = null;
     if (listLongitude.length > 1) {
       if (listLongitude[1].length < number) {
-        longitude = this.edit.cords.longitude.toFixed(listLongitude[1].length);
+        longitude = cords.longitude.toFixed(listLongitude[1].length);
       } else {
-        longitude = this.edit.cords.longitude.toFixed(number);
+        longitude = cords.longitude.toFixed(number);
       }
     } else {
-      longitude = this.edit.cords.longitude;
+      longitude = cords.longitude;
     }
     return `${latitude}, ${longitude}`;
   }
@@ -84,50 +111,37 @@ export default class TimelineController {
     const parent = event.target.closest('.popup');
     const input = parent.querySelector('.popup-input');
     if (input.validity['valueMissing']) {
+      // полю input назначаем не валидное состояние
       input.setCustomValidity('Укажите широту и долготу согласно образца');
       return;
     }
-    const cords = this.getCords(input);
+    const cords = this.getCords(input); // проверка шаблона ввода координат
     if (!cords) {
       return;
     }
     event.preventDefault();
-    this.edit.cords = {
-      latitude: cords.latitude, // указать новые координаты
-      longitude: cords.longitude,
-    }
     this.edit.popup.remove();
-    const date = this.getStringCords(5);
+    const data = this.getStringCords(cords, 5);
     if (type === 'message') {
-      this.edit.drawMessage(date);
+      this.edit.drawMessage(data);
     }
     if (type === 'micro') {
-      this.edit.drawAudio(date);
+      this.edit.drawAudio(data);
     }
     if (type === 'video') {
-      this.edit.drawVideo(date);
+      this.edit.drawVideo(data);
     }
   }
 
-  onPressInput(event) {
+  async onPressInput(event) {
     // Callback - нажатие кнопки enter в поле ввода сообщения
-    // const nav = navigator.geolocation;
-    // if (nav) {
-    //   console.log('Получаем коры');
-    //   nav.getCurrentPosition((data) => {
-    //     this.edit.cords = {
-    //       latitude: data.coords.latitude,
-    //       longitude: data.coords.longitude
-    //     }
-    //   });
-    // }
-
-    if (!this.edit.cords) {
-      this.edit.drawPopup();
+    const cords = await this.getCoords(); // получение координат
+    if (!cords) {
+      this.edit.drawPopup(); // если координат нет, то отрисовать окно
       return;
     }
-    const date = this.getStringCords(5);
-    this.edit.drawMessage(date);
+    const data = this.getStringCords(cords, 5);
+    this.edit.drawMessage(data);
   }
 
   onPressMicro(event) {
@@ -146,37 +160,74 @@ export default class TimelineController {
 
   async onPressVideo(event) {
     // Callback - нажатие кнопки видео
-    console.log('нажали видео', event.target);
-    if (!this.edit.cords) { // проверяем наличие координат
-      this.edit.drawPopup('video');
-      return;
-    } 
+    // if (!this.edit.cords) { // проверяем наличие координат
+    //   this.edit.drawPopup('video');
+    //   return;
+    // } 
 
     // const date = this.getStringCords(5); // получение координат
     // this.edit.drawVideo(date);
     this.stream = await navigator.mediaDevices.getUserMedia({ // получаем видеопоток
       video: true, // получение разрешения на пользование видеокамерой
+      audio: true,
     });
 
     const { target } = event;
     const parent = target.closest('.content-field-input');
     this.edit.drawFieldVideo(parent);
-    this.edit.fieldVideo.srcObject = this.stream;
+    this.edit.fieldVideo.srcObject = this.stream; // Отображаем видеопоток в теге video 
+                                                  // (blob объекты не подходят для этого)
+    this.edit.fieldVideo.play();
     this.edit.btnVideo.classList.toggle('hidden');
     this.edit.btnMicro.classList.toggle('hidden');
     this.edit.btnAccept.classList.toggle('hidden');
     this.edit.btnCancel.classList.toggle('hidden');
     this.edit.time.classList.toggle('hidden');
 
+    this.recorder = new MediaRecorder(this.stream); // для записи видеопотока
+
+    this.recorder.addEventListener('start', () => {
+      console.log('начало записи');
+    }); // начало записи
+
+    this.recorder.addEventListener('dataavailable', (event) => {
+      console.log('получение данных');
+      this.chunks.push(event.data); // для сохранения кусков данных по видео в наш массив
+      console.log('this.chunks:', this.chunks);
+    }); // получение данных
+
+    this.recorder.addEventListener('stop', () => {
+      console.log('конец записи');
+      if (this.save) {
+        const nav = navigator.geolocation;
+        if (nav) {
+          console.log('Получаем коры');
+          nav.getCurrentPosition(async (data) => {
+            console.log('Получаем data', data);
+            this.edit.cords = {
+              latitude: data.coords.latitude,
+              longitude: data.coords.longitude
+            }
+          });
+        }
+
+        this.blob = new Blob(this.chunks); // получение двоичных данных по видео
+        const url = URL.createObjectURL(this.blob);
+        this.edit.drawVideo('12, 34', url); // отрисовка видео в ленту
+        this.save = false;
+      }
+    }); // конец записи
+
     this.edit.fieldVideo.addEventListener('canplay', () => {
       console.log('Нашлось видео');
-      this.edit.fieldVideo.play();
+      // this.edit.fieldVideo.play(); // запускаем воспроизведение видео в теге video
+      this.recorder.start(); // запуск записи видеопотока
       this.timerId = setTimeout(this.secundomer.bind(this), 1000);
     });
   }
 
   secundomer() {
-    // метод вызываемый таймером
+    // метод вызываемый с помощью setTimeout
       this.time.seconds += 1;
       if (this.time.seconds === 60) {
         this.time.minutes += 1;
@@ -197,7 +248,7 @@ export default class TimelineController {
         this.edit.time.children[0].textContent = `${hours}.${minutes}.${seconds}`;
       }
 
-      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+      this.timerId = setTimeout(this.secundomer.bind(this), 1000); // зацикливание таймера
   }
 
   getStringTime(number) {
@@ -211,11 +262,27 @@ export default class TimelineController {
 
   onPressCross() {
     // Callback - нажатие кнопки крестик (отмена записи)
+    this.recorder.stop(); // остановка записи видеопотока
+    this.clearData();
+  }
+
+  onPressAccept() {
+    // Callback - нажатие кнопки принять (сохранение аудио/видео записи)
+    console.log('сохранение аудио/видео записи');
+    this.save = true;
+    this.recorder.stop(); // остановка записи видеопотока
+    this.clearData();
+  }
+
+  clearData() {
+    //Очищает данные после добавления записи
     this.stream.getTracks().forEach(function(track) {
       track.stop(); // отключаем все дорожки видео потока
     });
-    this.edit.fieldVideo.remove();
-    clearTimeout(this.timerId);
+    this.blob = null;
+    this.chunks = [];
+    this.edit.fieldVideo.remove(); // удаляем поле с видео
+    clearTimeout(this.timerId); // отключаем таймер
     this.edit.btnVideo.classList.toggle('hidden');
     this.edit.btnMicro.classList.toggle('hidden');
     this.edit.btnAccept.classList.toggle('hidden');
@@ -228,10 +295,5 @@ export default class TimelineController {
       minutes: 0,
       seconds: 0,
     }
-  }
-
-  onPressAccept() {
-    // Callback - нажатие кнопки принять (сохранение аудио/видео записи)
-    console.log('сохранение аудио/видео записи');
   }
 }

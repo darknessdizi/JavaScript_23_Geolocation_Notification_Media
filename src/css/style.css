@@ -7,7 +7,8 @@ body {
 
 .content {
   margin: 30px auto;
-  width: 90vw;
+  /* width: 90vw; */
+  max-width: 600px;
   height: 70vh;
   display: flex;
   flex-direction: column;
@@ -77,22 +78,22 @@ body {
 
 .action-micro {
   background-image: url('../img/mic.svg');
-  background-size: 2vmax;
+  background-size: 50%;
 }
 
 .action-video {
   background-image: url('../img/video.svg');
-  background-size: 3vmax;
+  background-size: 70%;
 }
 
 .action-accept {
   background-image: url('../img/ok.svg');
-  background-size: 4vmax;
+  background-size: 70%;
 }
 
 .action-cancel {
   background-image: url('../img/cross.png');
-  background-size: 4vmax;
+  background-size: 70%;
 }
 
 .hidden {

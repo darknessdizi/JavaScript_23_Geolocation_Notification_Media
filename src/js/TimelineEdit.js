@@ -21,15 +21,18 @@ export default class TimelineEdit {
 
   bindToDOM() {
     // Добавляет поле main к элементу body
-    const nav = navigator.geolocation;
-    if (nav) {
-      nav.getCurrentPosition((data) => {
-        this.cords = {
-          latitude: data.coords.latitude,
-          longitude: data.coords.longitude
-        }
-      });
-    }
+    // const nav = navigator.geolocation;
+    // console.log('получение nav', nav);
+    // if (nav) {
+    //   console.log('условие координат');
+    //   nav.getCurrentPosition((data) => {
+    //     console.log('получение координат', data);
+    //     this.cords = {
+    //       latitude: data.coords.latitude,
+    //       longitude: data.coords.longitude
+    //     }
+    //   });
+    // }
 
     this.createMain();
   }
@@ -75,6 +78,9 @@ export default class TimelineEdit {
   drawFieldVideo(parent) {
     // Отрисовывает всплывающее окно для записи видеопотока
     this.fieldVideo = TimelineEdit.addTagHTML(parent, 'field-video', 'video');
+    this.fieldVideo.setAttribute('autoplay', '');
+    this.fieldVideo.setAttribute('muted', '');
+    // this.fieldVideo.setAttribute('src', 'null');
     this.input.value = '';
   }
 
@@ -105,15 +111,9 @@ export default class TimelineEdit {
     btnOk.setAttribute('type', 'submit');
     btnOk.textContent = 'Ок';
 
-    cancel.addEventListener('click', () => {
-      this.popup.remove();
-    });
-
+    cancel.addEventListener('click', () => this.popup.remove());
     btnOk.addEventListener('click', (o) => this.onPopupClick(o, type));
-
-    input.addEventListener('input', () => {
-      input.setCustomValidity('');
-    });
+    input.addEventListener('input', () => input.setCustomValidity(''));
   }
 
   drawMessage(stringDate) {
@@ -151,7 +151,7 @@ export default class TimelineEdit {
     cords.textContent = `[${stringDate}]`;
   }
 
-  drawVideo(stringDate) {
+  drawVideo(stringDate, url) {
     // Добавляет видео в ленту
     const conteiner = document.createElement('div');
     conteiner.classList.add('content-post');
@@ -160,6 +160,7 @@ export default class TimelineEdit {
     const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
     const video = TimelineEdit.addTagHTML(row, 'post-video', 'video');
     video.setAttribute('controls', '');
+    video.src = url; // добавляем видеопоток
     this.input.value = '';
     const date = TimelineEdit.addTagHTML(row, 'post-date');
     const time = Date.now();
