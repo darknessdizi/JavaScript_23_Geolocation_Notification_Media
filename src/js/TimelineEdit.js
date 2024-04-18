@@ -9,8 +9,7 @@ export default class TimelineEdit {
     this.btnAccept = null;
     this.btnCancel = null;
     this.time = null;
-    this.fieldVideo = null;
-    this.fieldAudio = null;
+    this.media = null;
     this.videoListeners = [];
     this.microListeners = [];
     this.inputListeners = [];
@@ -57,24 +56,16 @@ export default class TimelineEdit {
     this.btnAccept.addEventListener('click', (o) => this.onPressAccept(o));
   }
 
-  drawFieldAudio(parent) {
-    // Отрисовывает всплывающее окно для записи видеопотока
-    this.fieldAudio = TimelineEdit.addTagHTML(parent, 'field-audio', 'audio');
-    this.fieldAudio.setAttribute('autoplay', '');
-    this.fieldAudio.setAttribute('muted', '');
-    this.input.value = '';
-  }
-
-  drawFieldVideo(parent) {
-    // Отрисовывает всплывающее окно для записи видеопотока
-    this.fieldVideo = TimelineEdit.addTagHTML(parent, 'field-video', 'video');
-    this.fieldVideo.setAttribute('autoplay', '');
-    this.fieldVideo.setAttribute('muted', '');
+  drawFieldMedia(parent, type) {
+    // Отрисовывает всплывающее окно для записи media
+    this.media = TimelineEdit.addTagHTML(parent, `field-${type}`, type);
+    this.media.setAttribute('autoplay', '');
+    this.media.setAttribute('muted', '');
     this.input.value = '';
   }
 
   drawPopup(type = 'message') {
-    // Отрисовывает всплывающее окно
+    // Отрисовывает всплывающее окно для получения координат
     this.popup = TimelineEdit.addTagHTML(this.main, 'background-popup');
     const conteiner = TimelineEdit.addTagHTML(this.popup, 'popup', 'form');
 
@@ -103,6 +94,21 @@ export default class TimelineEdit {
     cancel.addEventListener('click', () => this.popup.remove());
     btnOk.addEventListener('click', (o) => this.onPopupClick(o, type));
     input.addEventListener('input', () => input.setCustomValidity(''));
+  }
+
+  drawPopupError(text) {
+    this.popup = TimelineEdit.addTagHTML(this.main, 'background-popup');
+    const conteiner = TimelineEdit.addTagHTML(this.popup, 'popup');
+    const messages = TimelineEdit.addTagHTML(conteiner, 'popup-message');
+    const lineFirst = TimelineEdit.addTagHTML(messages, 'popup-body', 'p');
+    lineFirst.textContent = text;
+
+    const blockDiv = TimelineEdit.addTagHTML(conteiner, 'popup-control');
+    const cancel = TimelineEdit.addTagHTML(blockDiv, 'control-cancel', 'button');
+    cancel.setAttribute('type', 'button');
+    cancel.textContent = 'Отмена';
+
+    cancel.addEventListener('click', () => this.popup.remove());
   }
 
   drawMessage(stringDate) {
