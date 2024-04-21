@@ -126,6 +126,10 @@ export default class TimelineEdit {
     date.textContent = TimelineEdit.getNewFormatDate(time);
     const cords = TimelineEdit.addTagHTML(conteiner, 'post-cords');
     cords.textContent = `[${stringDate}]`;
+    const eye = TimelineEdit.addTagHTML(conteiner, 'post-link', 'a');
+    const place = stringDate.replace(' ', '');
+    eye.setAttribute('href', `http://www.google.com/maps/place/${place}`);
+    eye.setAttribute('target', '_blank');
   }
 
   drawMedia(stringDate, url, type) {
@@ -144,6 +148,10 @@ export default class TimelineEdit {
     date.textContent = TimelineEdit.getNewFormatDate(time);
     const cords = TimelineEdit.addTagHTML(conteiner, 'post-cords');
     cords.textContent = `[${stringDate}]`;
+    const eye = TimelineEdit.addTagHTML(conteiner, 'post-link', 'a');
+    const place = stringDate.replace(' ', '');
+    eye.setAttribute('href', `http://www.google.com/maps/place/${place}`);
+    eye.setAttribute('target', '_blank');
   }
 
   static getNewFormatDate(timestamp) {

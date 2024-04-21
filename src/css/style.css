@@ -218,4 +218,17 @@ button:active {
 
 .post-cords {
   margin-top: 10px;
+  display: inline-block;
+}
+
+.post-link {
+  width: 20px;
+  height: 20px;
+  background-image: url('../img/eye.svg');
+  display: inline-block;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 90%;
+  margin-left: 10px;
+  vertical-align: middle;
 }
