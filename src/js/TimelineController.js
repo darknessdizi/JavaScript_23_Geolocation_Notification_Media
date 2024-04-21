@@ -41,6 +41,9 @@ export default class TimelineController {
             console.log('ошибка', error);
             resolve(false);
           },
+          {
+            timeout: 3000, // ограничили время ответа на запрос координат
+          },
         );
       } else {
         resolve(false);
@@ -82,7 +85,6 @@ export default class TimelineController {
     const regexp = /^\[[-+]?\d{1,2}(?:\.\d+)?,\s*[-+]?\d{1,3}(?:\.\d+)?\]$/;
     const { value } = input;
     if (regexp.test(value)) {
-      console.log('проверка успешна', regexp.test(value));
       const [latitude, longitude] = value.split(',');
       const cords = {
         latitude: Number(latitude.replace('[', '').trim()),
@@ -91,7 +93,6 @@ export default class TimelineController {
       return cords;
     }
     if (regexp2.test(value)) {
-      console.log('проверка успешна', regexp2.test(value));
       const [latitude, longitude] = value.split(',');
       const cords = {
         latitude: Number(latitude.trim()),
@@ -99,7 +100,6 @@ export default class TimelineController {
       };
       return cords;
     }
-    console.log('Проверка не пройдена');
     // Делаем поле input не валидным
     input.setCustomValidity('Не верно указаны координаты');
     return false;
@@ -126,11 +126,9 @@ export default class TimelineController {
     }
     if (type === 'audio') {
       this.edit.drawMedia(data, this.url, 'audio');
-      this.save = false;
     }
     if (type === 'video') {
       this.edit.drawMedia(data, this.url, 'video');
-      this.save = false;
     }
   }
 
@@ -163,13 +161,13 @@ export default class TimelineController {
     }
     this.edit.drawFieldMedia(parent, type);
     this.edit.media.srcObject = this.stream; // Отображаем медиапоток в теге
-    // this.edit.media.play();
+    this.edit.media.play();
     this.changingButtons(); // скрываем ненужные кнопки
     this.recorder = new MediaRecorder(this.stream); // нужен для записи медиапотока
     this.recorder.start();
 
     this.recorder.addEventListener('start', () => { // начало записи
-      this.timerId = setTimeout(this.secundomer.bind(this), 1000);
+      this.timerId = setInterval(this.secundomer.bind(this), 1000);
     });
 
     this.recorder.addEventListener('dataavailable', (e) => { // получение данных
@@ -224,7 +222,7 @@ export default class TimelineController {
   }
 
   secundomer() {
-    // метод вызываемый с помощью setTimeout
+    // метод вызываемый с помощью setInterval
     this.time.seconds += 1;
     if (this.time.seconds === 60) {
       this.time.minutes += 1;
@@ -245,7 +243,7 @@ export default class TimelineController {
       this.edit.time.children[0].textContent = `${hours}.${minutes}.${seconds}`;
     }
 
-    this.timerId = setTimeout(this.secundomer.bind(this), 1000); // зацикливание таймера
+    // this.timerId = setTimeout(this.secundomer.bind(this), 1000); // зацикливание таймера
   }
 
   static getStringTime(number) {

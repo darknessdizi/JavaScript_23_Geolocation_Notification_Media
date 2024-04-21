@@ -137,7 +137,7 @@ export default class TimelineEdit {
     const row = TimelineEdit.addTagHTML(conteiner, 'content-row');
     const media = TimelineEdit.addTagHTML(row, `post-${type}`, type);
     media.setAttribute('controls', '');
-    media.src = url; // добавляем медиапоток
+    media.src = url; // добавляем url Blob медиапотока
     this.input.value = '';
     const date = TimelineEdit.addTagHTML(row, 'post-date');
     const time = Date.now();
