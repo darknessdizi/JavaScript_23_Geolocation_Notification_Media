@@ -58,9 +58,13 @@ export default class TimelineEdit {
 
   drawFieldMedia(parent, type) {
     // Отрисовывает всплывающее окно для записи media
-    this.media = TimelineEdit.addTagHTML(parent, `field-${type}`, type);
-    this.media.setAttribute('autoplay', '');
-    this.media.setAttribute('muted', '');
+    // this.media = TimelineEdit.addTagHTML(parent, `field-${type}`, type);
+    // this.media.setAttribute('autoplay', '');
+    // this.media.setAttribute('muted', '');
+
+    const htmlElement = `<${type} class="field-${type}" autoplay="" muted=""></${type}>`;
+    parent.insertAdjacentHTML('beforeend', htmlElement);
+    this.media = parent.querySelector(type);
     this.input.value = '';
   }
 
